@@ -160,6 +160,15 @@ Les corrections n’ont pas encore été réalisées.
 
 Le tableau rassemble les six indicateurs demandés. Les temps viennent de PageSpeed Insights. Le poids et les requêtes viennent d’un relevé Réseau séparé, commun aux deux profils de départ.
 
+### Suppression du préchargement supplémentaire
+
+J’ai retiré de `index.html` le préchargement de `img6.jpg?v=2`. L’image reste présente dans la galerie avec l’adresse `img6.jpg`.
+
+Après publication, le poids transféré passe de 17,5 à 14,2 MB, soit environ 3,3 MB économisés (19 %). Le nombre de requêtes passe de 22 à 21.
+
+![Réseau après suppression du préchargement](audit/Reseau-apres-prel.png)
+
+
 ![Comparaison avant et après optimisation](audit/tableau-avant-apres.png)
 
 Après chaque optimisation, je noterai :
