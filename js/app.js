@@ -156,40 +156,64 @@
     }
   }
 
-  /* Aligne la hauteur des cartes et anime leur arrivée dans le viewport. */
   function revealCards() {
     var cards = UIKit.qsa('.card');
+    var jours = UIKit.qsa('.cal-day');
+    var hauteurFenetre = window.innerHeight;
+    var tallest = 0;
+    var positions = [];
+    var opacites = [];
 
-    for (var i = 0; i < cards.length; i++) {
-      var rect = cards[i].getBoundingClientRect();
+  // Mesurer les cartes avant de modifier leurs styles.
+  for (var i = 0; i < cards.length; i++) {
+    var hauteur = cards[i].offsetHeight;
 
-      // Hauteur de la plus grande carte, pour garder une grille régulière.
-      var tallest = 0;
-      var all = UIKit.qsa('.card');
-      for (var j = 0; j < all.length; j++) {
-        if (all[j].offsetHeight > tallest) {
-          tallest = all[j].offsetHeight;
-        }
-      }
-      cards[i].style.minHeight = tallest + 'px';
-
-      if (rect.top < window.innerHeight - 40) {
-        UIKit.cls(cards[i], 'visible', true);
-        cards[i].style.transform = 'translateY(0px)';
-      } else {
-        cards[i].style.transform = 'translateY(24px)';
-      }
+    if (hauteur > tallest) {
+      tallest = hauteur;
     }
 
-    // Les cases du calendrier apparaissent progressivement à l'approche.
-    var jours = UIKit.qsa('.cal-day');
-    for (var k = 0; k < jours.length; k++) {
-      var box = jours[k].getBoundingClientRect();
-      var d = Math.abs(box.top - window.innerHeight / 2);
-      jours[k].style.opacity = Math.max(0.15, 1 - d / window.innerHeight);
+    positions[i] = cards[i].getBoundingClientRect().top;
+  }
+
+  // Mesurer aussi les cases du calendrier.
+  for (var k = 0; k < jours.length; k++) {
+    var top = jours[k].getBoundingClientRect().top;
+    var distance = Math.abs(top - hauteurFenetre / 2);
+
+    opacites[k] = Math.max(0.15, 1 - distance / hauteurFenetre);
+  }
+
+  // Appliquer les modifications après les mesures.
+  for (var j = 0; j < cards.length; j++) {
+    var hauteurCarte = tallest + 'px';
+
+    if (cards[j].style.minHeight !== hauteurCarte) {
+      cards[j].style.minHeight = hauteurCarte;
+    }
+
+    var transformation = 'translateY(24px)';
+
+    if (positions[j] < hauteurFenetre - 40) {
+      if (!cards[j].classList.contains('visible')) {
+        UIKit.cls(cards[j], 'visible', true);
+      }
+
+      transformation = 'translateY(0px)';
+    }
+
+    if (cards[j].style.transform !== transformation) {
+      cards[j].style.transform = transformation;
     }
   }
 
+  for (var n = 0; n < jours.length; n++) {
+    var opacite = String(opacites[n]);
+
+    if (jours[n].style.opacity !== opacite) {
+      jours[n].style.opacity = opacite;
+    }
+  }
+}
   /* Affiche les images une fois chargées. */
   function watchImages() {
     UIKit.qsa('.card img').forEach(function (img) {
