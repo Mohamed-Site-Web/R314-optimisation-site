@@ -1,11 +1,1 @@
-/* Texture d'arrière-plan du bandeau principal. */
-.hero{position:relative;overflow:hidden}
-.hero::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  background:url('../img/hero-bg.webp') center / cover no-repeat;
-  opacity:.04;
-  pointer-events:none;
-}
-.hero-inner{position:relative;z-index:1}
+.hero{position:relative;overflow:hidden}.hero::before{content:"";position:absolute;inset:0;background:url('../img/hero-bg.webp') center/cover no-repeat;opacity:.04;pointer-events:none}.hero-inner{position:relative;z-index:1}
