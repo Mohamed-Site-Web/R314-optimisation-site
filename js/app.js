@@ -235,8 +235,21 @@
     var champ = UIKit.qs('#q');
     if (champ) champ.addEventListener('input', filterGallery);
   });
+  
+  var miseAJourPrevue = false;
+  
+  function programmerRevealCards() {
+    if (miseAJourPrevue) return;
+    miseAJourPrevue = true;
+    window.requestAnimationFrame(function () {
+      revealCards();
+      miseAJourPrevue = false;
+    });
+  }
+  window.addEventListener('scroll', programmerRevealCards, {
+    passive: true
+  });
 
-  window.addEventListener('scroll', revealCards);
-  window.addEventListener('resize', revealCards);
+  window.addEventListener('resize', programmerRevealCards);
   window.addEventListener('load', revealCards);
 })();
