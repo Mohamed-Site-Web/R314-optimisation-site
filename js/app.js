@@ -1,7 +1,6 @@
 /* ============================================================
    app.js — interactions de la galerie SlowSite
    Révélation des vignettes au scroll + nuage de mots-clés.
-   Dépend de js/vendor/ui-kit.min.js (UIKit).
    ============================================================ */
 (function () {
   'use strict';
@@ -71,23 +70,23 @@
 
   /* Alimente les suggestions du champ de filtrage avec le vocabulaire
      d'indexation de la photothèque. */
- function buildKeywordIndex() {
-  var list = UIKit.qs('#motscles');
-  if (!list) return;
+  function buildKeywordIndex() {
+    var list = document.querySelector('#motscles');
+    if (!list) return;
 
-  var options = '';
+    var options = '';
 
-  for (var i = 0; i < TAGS.length; i++) {
-    options += '<option value="' + TAGS[i] + '"></option>';
+    for (var i = 0; i < TAGS.length; i++) {
+      options += '<option value="' + TAGS[i] + '"></option>';
+    }
+
+    list.innerHTML = options;
   }
-
-  list.innerHTML = options;
-}
 
   /* Construit le calendrier d'activité : 53 semaines de 7 jours, la teinte de
      chaque case reflétant le nombre de prises de vue archivées ce jour-là. */
   function buildActivityCalendar() {
-    var host = UIKit.qs('#calendrier');
+    var host = document.querySelector('#calendrier');
     if (!host) return;
 
     var MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet',
@@ -107,6 +106,7 @@
           ' ' + MOIS[jour.getUTCMonth()];
       frag.appendChild(cell);
     }
+
     host.appendChild(frag);
   }
 
@@ -119,21 +119,23 @@
     var bruit = ((graine >>> 13) % 100) / 100;
     var poids = (j === 0 || j === 6 ? 0.45 : 0.12) +
                 (mois >= 4 && mois <= 8 ? 0.28 : 0.05) + bruit * 0.45;
+
     if (poids < 0.35) return 0;
     if (poids < 0.6) return 1;
     if (poids < 0.8) return 2;
     if (poids < 0.95) return 3;
+
     return 4;
   }
 
   /* Filtre la galerie sur les mots-clés associés à chaque visuel. */
   function filterGallery() {
-    var champ = UIKit.qs('#q');
-    var info = UIKit.qs('#filter-info');
+    var champ = document.querySelector('#q');
+    var info = document.querySelector('#filter-info');
     if (!champ) return;
 
     var q = champ.value.trim().toLowerCase();
-    var cards = UIKit.qsa('.card');
+    var cards = document.querySelectorAll('.card');
     var visibles = 0;
 
     for (var i = 0; i < cards.length; i++) {
@@ -157,95 +159,106 @@
   }
 
   function revealCards() {
-    var cards = UIKit.qsa('.card');
-    var jours = UIKit.qsa('.cal-day');
+    var cards = document.querySelectorAll('.card');
+    var jours = document.querySelectorAll('.cal-day');
     var hauteurFenetre = window.innerHeight;
     var tallest = 0;
     var positions = [];
     var opacites = [];
 
-  // Mesurer les cartes avant de modifier leurs styles.
-  for (var i = 0; i < cards.length; i++) {
-    var hauteur = cards[i].offsetHeight;
+    // Mesurer les cartes avant de modifier leurs styles.
+    for (var i = 0; i < cards.length; i++) {
+      var hauteur = cards[i].offsetHeight;
 
-    if (hauteur > tallest) {
-      tallest = hauteur;
-    }
-
-    positions[i] = cards[i].getBoundingClientRect().top;
-  }
-
-  // Mesurer aussi les cases du calendrier.
-  for (var k = 0; k < jours.length; k++) {
-    var top = jours[k].getBoundingClientRect().top;
-    var distance = Math.abs(top - hauteurFenetre / 2);
-
-    opacites[k] = Math.max(0.15, 1 - distance / hauteurFenetre);
-  }
-
-  // Appliquer les modifications après les mesures.
-  for (var j = 0; j < cards.length; j++) {
-    var hauteurCarte = tallest + 'px';
-
-    if (cards[j].style.minHeight !== hauteurCarte) {
-      cards[j].style.minHeight = hauteurCarte;
-    }
-
-    var transformation = 'translateY(24px)';
-
-    if (positions[j] < hauteurFenetre - 40) {
-      if (!cards[j].classList.contains('visible')) {
-        UIKit.cls(cards[j], 'visible', true);
+      if (hauteur > tallest) {
+        tallest = hauteur;
       }
 
-      transformation = 'translateY(0px)';
+      positions[i] = cards[i].getBoundingClientRect().top;
     }
 
-    if (cards[j].style.transform !== transformation) {
-      cards[j].style.transform = transformation;
+    // Mesurer aussi les cases du calendrier.
+    for (var k = 0; k < jours.length; k++) {
+      var top = jours[k].getBoundingClientRect().top;
+      var distance = Math.abs(top - hauteurFenetre / 2);
+
+      opacites[k] = Math.max(0.15, 1 - distance / hauteurFenetre);
+    }
+
+    // Appliquer les modifications après les mesures.
+    for (var j = 0; j < cards.length; j++) {
+      var hauteurCarte = tallest + 'px';
+
+      if (cards[j].style.minHeight !== hauteurCarte) {
+        cards[j].style.minHeight = hauteurCarte;
+      }
+
+      var transformation = 'translateY(24px)';
+
+      if (positions[j] < hauteurFenetre - 40) {
+        if (!cards[j].classList.contains('visible')) {
+          cards[j].classList.add('visible');
+        }
+
+        transformation = 'translateY(0px)';
+      }
+
+      if (cards[j].style.transform !== transformation) {
+        cards[j].style.transform = transformation;
+      }
+    }
+
+    for (var n = 0; n < jours.length; n++) {
+      var opacite = String(opacites[n]);
+
+      if (jours[n].style.opacity !== opacite) {
+        jours[n].style.opacity = opacite;
+      }
     }
   }
 
-  for (var n = 0; n < jours.length; n++) {
-    var opacite = String(opacites[n]);
-
-    if (jours[n].style.opacity !== opacite) {
-      jours[n].style.opacity = opacite;
-    }
-  }
-}
   /* Affiche les images une fois chargées. */
   function watchImages() {
-    UIKit.qsa('.card img').forEach(function (img) {
+    document.querySelectorAll('.card img').forEach(function (img) {
       if (img.complete) {
-        UIKit.cls(img, 'loaded', true);
+        img.classList.add('loaded');
       } else {
         img.addEventListener('load', function () {
-          UIKit.cls(img, 'loaded', true);
+          img.classList.add('loaded');
         });
       }
     });
   }
 
-  UIKit.ready(function () {
+  function initialiser() {
     buildKeywordIndex();
     buildActivityCalendar();
     watchImages();
     revealCards();
-    var champ = UIKit.qs('#q');
+
+    var champ = document.querySelector('#q');
     if (champ) champ.addEventListener('input', filterGallery);
-  });
-  
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initialiser);
+  } else {
+    initialiser();
+  }
+
   var miseAJourPrevue = false;
-  
+
   function programmerRevealCards() {
     if (miseAJourPrevue) return;
+
     miseAJourPrevue = true;
+
     window.requestAnimationFrame(function () {
       revealCards();
       miseAJourPrevue = false;
     });
   }
+
   window.addEventListener('scroll', programmerRevealCards, {
     passive: true
   });
