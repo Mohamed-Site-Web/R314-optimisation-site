@@ -6,189 +6,100 @@ Site : https://mohamed-site-web.github.io/R314-optimisation-site/
 
 Dépôt : https://github.com/mohamed-site-web/R314-optimisation-site
 
-## 1. Audit initial
+## 1. Audit initial et conditions de mesure
 
-L’objectif est de rendre SlowSite plus rapide en gardant la même apparence et les mêmes fonctionnalités.
+L’objectif du TP est de rendre SlowSite plus rapide en conservant son apparence et ses fonctionnalités.
 
-Les relevés portent sur le site publié sur GitHub Pages. Pour Réseau, le cache est désactivé et les fichiers sont triés par taille.
+Les mesures ont été réalisées sur le site publié sur GitHub Pages. Dans Réseau, le cache était désactivé et les ressources étaient triées par taille. Le relevé final a été effectué après défilement pour charger aussi les images différées. Les tailles en MB sont reprises telles qu’elles sont affichées par le navigateur.
 
-Le test Lighthouse Mobile a été réalisé en navigation privée. Les trois scores obtenus sont 25, 27 et 26. J’ai retenu l’essai à 26/100, qui correspond au score médian.
+Pour les audits Lighthouse finaux, j’ai utilisé les profils Mobile et Ordinateur en navigation privée, sans le widget ?perf=1. Les trois scores Mobile initiaux étaient 25, 27 et 26. La capture retenue correspond au score médian de 26. Pour les relevés finaux, j’ai effectué trois essais par profil et calculé la médiane de chaque indicateur séparément. La capture Ordinateur initiale disponible constitue un relevé unique, et non une médiane de trois essais documentés ; ses conditions initiales ne sont pas entièrement documentées.
 
-Les séries de trois essais des autres profils restent à documenter. Pour Performance, le réglage CPU ×4 et la durée complète d’au moins 20 secondes avec défilement restent à confirmer. Le relevé Lighthouse Ordinateur reste provisoire tant que ses conditions sans extensions ne sont pas confirmées.
+Le panneau Performance a été utilisé avec un ralentissement CPU ×4 et des enregistrements avec défilement d’au moins 20 secondes. Des sessions sans défilement ont aussi permis de comparer le script différé sur fenêtre large et étroite. Coverage a servi à repérer le CSS inutilisé, avec une vérification des fichiers HTML et JavaScript avant suppression.
 
-### Réseau
-
-Le site transfère 17,5 MB pour 22 requêtes. Les images représentent l’essentiel du poids : plusieurs dépassent 1 MB et certaines atteignent environ 3,39 MB.
+Au départ, Réseau indiquait 17,5 MB pour 22 requêtes. Les images représentaient l’essentiel du poids.
 
 ![Réseau avant optimisation](audit/Reseau-avant.png)
 
-### Lighthouse
+PageSpeed Insights donnait aussi des LCP élevés : 67,1 s sur Mobile et 12,1 s sur Ordinateur. Les captures sont conservées dans audit/Insights.png et audit/Insights-pc.png. Ces résultats ne sont pas mélangés avec Lighthouse dans le tableau, car les conditions sont différentes. Aucune donnée de terrain sur les visiteurs n’était disponible : l’audit repose sur des données de laboratoire.
 
-Sur Mobile, le résultat retenu est de 26/100 :
+## 2. Problèmes, corrections et résultats
 
-- FCP : 4,7 s.
-- LCP : 71,6 s.
-- TBT : 14 660 ms.
-- CLS : 0,011.
+### Images et téléchargements inutiles
 
-Le contenu principal apparaît très tard et le thread principal reste longtemps bloqué pendant le chargement.
+Les images étaient trop lourdes. J’ai réduit les six images, utilisé WebP et ajouté des variantes de 760 pixels avec srcset et sizes, selon la grille responsive. Les pages de détail conservent les images plus grandes. La règle max-width:100%;height:auto évite leur débordement sur petit écran.
 
-![Lighthouse Mobile avant optimisation](audit/Lighthouse-Mobile-avant.png)
+Après réduction des images, le total est passé de 14,2 à 7,4 MB. Le passage en WebP seul n’a pas apporté de gain : le relevé suivant affichait 7,6 MB. L’optimisation du fond a ensuite réduit son transfert d’environ 3,39 MB à 788 kB et le total à 5 MB. Avec les variantes adaptées à la galerie, un relevé affichait environ 2,09 MB. Ces étapes sont documentées dans les captures Réseau intermédiaires du dossier audit/.
 
-Sur Ordinateur, la capture disponible affiche 29/100 :
+Le préchargement de img6.jpg?v=2 provoquait un téléchargement supplémentaire. Sa suppression a fait passer le poids de 17,5 à 14,2 MB et les requêtes de 22 à 21, soit environ 3,3 MB économisés. Le retrait de la référence au script absent js/legacy/polyfills.js a ensuite réduit les requêtes à 20. Les preuves sont audit/Reseau-apres-prel.png et audit/Reseau-apres-poly.png.
 
-- FCP : 1,6 s.
-- LCP : 11,3 s.
-- TBT : 3 780 ms.
-- CLS : 0,065.
+J’ai ajouté width et height aux images pour réserver leur place. Les CLS relevés après cette étape étaient 0, 0,034 et 0,011 : la médiane de 0,011 ne montrait pas encore de gain par rapport au Mobile initial. J’ai aussi ajouté decoding="async" et loading="lazy" aux dernières images. Le chargement différé décale les transferts sans réduire le poids total une fois toutes les images chargées.
 
-![Lighthouse Ordinateur avant optimisation](<audit/Lighthouse  Ordinateur  Avant optimisation.png>)
+### Chargement des scripts, du CSS et des polices
 
-### PageSpeed Insights
+J’ai ajouté defer aux scripts en conservant leur ordre, remplacé les imports CSS par des liens HTML et regroupé le chargement des polices avec display=swap. J’ai aussi retiré une indication DNS inutile.
 
-Sur Mobile, le score est de 56/100 :
+Après defer, les médianes Mobile étaient FCP 3,3 s, LCP 8,3 s, TBT 10 690 ms et CLS 0. Ce résultat intermédiaire comprend les optimisations d’images précédentes et ne mesure donc pas le gain de defer seul. La capture est audit/Lighthouse-mobile-apres-defer.png.
 
-- FCP : 2,4 s.
-- LCP : 67,1 s.
-- TBT : 310 ms.
-- CLS : 0.
+### Suggestions et calculs pendant le défilement
 
-![PageSpeed Insights Mobile](audit/Insights.png)
+buildKeywordIndex utilisait innerHTML += dans une boucle. J’ai construit toutes les options avant une seule insertion. Les suggestions sont conservées. La fonction n’apparaissait plus parmi les principales activités du relevé suivant, sans que cela signifie un temps nul.
 
-Sur Ordinateur, le score est de 46/100 :
+Dans revealCards, la hauteur maximale était recalculée dans une boucle imbriquée. Les lectures de dimensions et les écritures de styles étaient mélangées, ce qui favorisait les reflows forcés. J’ai supprimé les calculs répétés, séparé les lectures des écritures et regroupé les mises à jour avec requestAnimationFrame.
 
-- FCP : 1 s.
-- LCP : 12,1 s.
-- TBT : 420 ms.
-- CLS : 0.
+Un relevé après correction affichait environ 539 ms de temps total pour revealCards, contre 6 327 ms au départ. Les défilements n’étant pas identiques, ce sont des ordres de grandeur. Les preuves sont audit/Performance-apres-suggestions.png, audit/Performance-apres-revealCards.png et les profils initiaux.
 
-![PageSpeed Insights Ordinateur](audit/Insights-pc.png)
+### Bibliothèque UIKit et observateur
 
-Ces résultats montrent surtout un chargement lent du contenu principal. Les mesures de Lighthouse sur mon ordinateur et celles de PageSpeed ne sont pas directement comparables, car leurs conditions sont différentes.
+UIKit exécutait une attente active et créait un grand tableau inutilisé au démarrage. Son MutationObserver relisait les styles de toute la page après les modifications, notamment pendant le défilement.
 
-L’audit repose sur des données de laboratoire. Je ne dispose pas de données de terrain sur les visiteurs.
+J’ai retiré les calculs inutilisés, puis remplacé les helpers par les fonctions JavaScript natives. Le retrait d’UIKit a aussi supprimé l’observateur inutile, en conservant les interactions. Les appels _sync n’apparaissaient plus parmi les principales activités du profil suivant. La preuve est audit/Performance-apres-retrait-uikit.png.
 
-### Performance et Coverage
+### Calcul différé et conditionnel dans analytics.js
 
-La frise montre plusieurs tâches longues. Dans Bottom-up, `revealCards` représente environ 6 327 ms de temps total et `buildKeywordIndex` environ 3 232 ms. Ces temps incluent les fonctions appelées et ne doivent pas être additionnés.
+Le calcul commençait environ 9,1 secondes après le chargement, puis revenait toutes les 2,6 secondes. Il ne travaillait que sur une page visible de plus de 1 024 pixels de large. Sa boucle occupait progressivement le processeur pendant 46 à 430 ms par appel.
 
-![Frise Performance avant optimisation](audit/frise.png)
+Les chaînes base64 masquaient innerWidth, performance, now et hidden. Leur décodage et les profils ont permis de comprendre le problème. Sur grand écran, _tick cumulait environ 3,94 s sur la plage affichée. En fenêtre étroite, la fonction revenait immédiatement et représentait environ 0,6 ms.
 
-![Bottom-up avant optimisation](<audit/avant optimisation.png>)
+J’ai remplacé la boucle par un seul calcul par appel, en conservant le minuteur et les conditions. Après correction sur grand écran, _tick représentait environ 97 ms sur la plage affichée et les gros pics réguliers avaient disparu. Ces temps de profil ne sont pas le TBT Lighthouse.
 
-Coverage indique une forte proportion de CSS inutilisé pendant la session :
+![Analytics avant correction sur grand écran](audit/Performance-avant-analytics-large.png)
 
-- `styles.css` : 95,8 %.
-- `extra.css` : 99,5 %.
-- `theme-legacy.css` : 80,4 %.
+![Analytics après correction sur grand écran](audit/Performance-apres-analytics.png)
 
-Il faudra vérifier les autres pages et interactions avant de retirer des règles.
+### Nettoyage et minification du CSS
 
-![Résultats Coverage](audit/coverage.png)
+Coverage indiquait 95,8 % de code inutilisé dans styles.css et 99,5 % dans extra.css. Après vérification des pages et des scripts, j’ai supprimé les classes inutilisées redundant-*, extra-*, legacy-*, tile* et highlight. Les règles nécessaires aux images, au calendrier et aux petits écrans ont été conservées.
 
-## 2. Problèmes identifiés et corrections proposées
+Le code de styles.css est passé de 91 998 à 4 348 octets, celui d’extra.css de 28 798 à 142 octets et celui de theme-legacy.css de 1 142 à 299 octets. Coverage n’indiquait plus que 10,9 % d’inutilisé dans styles.css. Ces tailles concernent le code décompressé, pas le transfert réseau.
 
-Les emplacements correspondent au code avant modification. Les corrections suivantes ne sont pas encore appliquées.
+![Coverage après nettoyage du CSS](audit/Coverage-apres-nettoyage-css.png)
 
-### Images et favicon trop lourds
+J’ai conservé les ombres et le flou : le profil ne permettait pas d’isoler leur coût. J’ai limité la transition du bouton à transform, en gardant son ombre au survol. Les autres transitions utilisent déjà transform ou opacity. Aucun gain chiffré propre à ce changement n’est annoncé.
 
-Dans `index.html`, lignes 75 à 90, la galerie utilise des images volumineuses. Le fond déclaré dans `css/theme-legacy.css:10` pèse aussi environ 3,39 MB. Le favicon, appelé dans `index.html:8`, représente environ 788 kB.
+Enfin, j’ai minifié les trois feuilles CSS. Le relevé publié affichait 1,8 kB pour styles.css, sans permettre d’isoler le gain de la minification. La preuve est audit/Reseau-apres-minification-css.png.
 
-Ces poids sont visibles dans la capture Réseau.
+## 3. Comparaison finale
 
-Je propose de compresser les images et d’adapter leurs dimensions à leur utilisation, en gardant une qualité suffisante. Le favicon peut aussi être remplacé par une version plus légère.
+Les valeurs Lighthouse « Avant » viennent des captures initiales : l’essai au score médian pour Mobile et le relevé disponible pour Ordinateur. Les valeurs « Après » sont les médianes de chaque indicateur sur trois essais par profil. Les captures représentatives peuvent donc afficher une valeur différente de certaines médianes.
 
-### Téléchargement supplémentaire
+Le poids et les requêtes proviennent de relevés Réseau séparés. Ils ne sont pas présentés comme des mesures propres à chacun des deux profils Lighthouse. La comparaison réseau dépend aussi du format d’écran, puisque srcset adapte les images téléchargées.
 
-Dans `index.html:12`, le site précharge `img6.jpg?v=2`, alors que la galerie utilise `img6.jpg` à la ligne 90. Réseau montre deux transferts d’environ 3,39 MB chacun.
+![Tableau comparatif des six indicateurs avant et après optimisation](audit/tableau-avant-apres.png)
 
-Je propose de retirer ce préchargement s’il n’est pas utile au premier affichage. L’économie réelle sera vérifiée après publication.
+La mise en forme de ce tableau a été générée avec une IA pour faciliter la lecture. Les chiffres proviennent des relevés d’audit.
 
-### Images sans dimensions
+Les scores finaux étaient 40, 42 et 39 sur Mobile, soit une médiane de 40. Sur Ordinateur, ils étaient 56, 74 et 68, soit une médiane de 68. Les variations, notamment du TBT, montrent l’intérêt des trois essais.
 
-Les images de la galerie, dans `index.html:75–90`, n’ont pas d’attributs `width` et `height`. Les diagnostics le signalent également.
+![Réseau après les optimisations](audit/Reseau-apres-final.png)
 
-Cela peut provoquer des déplacements de contenu, même si le CLS est nul sur les essais PageSpeed disponibles.
+![Lighthouse Mobile après les optimisations](audit/Lighthouse-mobile-apres.png)
 
-Je propose d’ajouter les dimensions réelles tout en gardant les images responsives.
+![Lighthouse Ordinateur après les optimisations](audit/Lighthouse-ordinateur-apres.png)
 
-Preuve : [capture des diagnostics](audit/dianostic.png).
+## 4. Limites et bilan
 
-### Construction des suggestions coûteuse
+Le relevé Réseau final affiche environ 88 % de poids transféré en moins et quatre requêtes en moins. Les captures Lighthouse montrent aussi un affichage du contenu principal plus rapide. Le résultat Mobile reste à améliorer : le LCP médian est encore de 10,5 s et le TBT de 2 670 ms. Le favicon, encore lourd, constitue également une piste restante.
 
-Dans `js/app.js:74–82`, `buildKeywordIndex` utilise `innerHTML +=` dans une boucle. Cela reconstruit plusieurs fois le contenu du datalist.
+Les corrections ont porté sur les ressources et les traitements, en conservant la galerie, ses liens, le filtre, les suggestions et le calendrier. Les temps Performance dépendent du défilement et les premiers relevés ne documentent pas tous une série complète de trois essais. Ces limites empêchent d’attribuer un gain exact à chaque modification.
 
-Bottom-up attribue environ 3 232 ms de temps total à cette fonction.
-
-Je propose de construire toutes les options avant de les insérer en une seule fois.
-
-### Calculs répétés pendant le défilement
-
-Dans `js/app.js:158–187`, `revealCards` mélange lectures de dimensions et modifications de styles. La hauteur maximale des cartes est recalculée dans une boucle imbriquée.
-
-Le profil Performance montre beaucoup de temps passé dans cette fonction et dans les calculs de mise en page.
-
-Je propose de regrouper les lectures avant les écritures et de limiter les calculs répétés pendant le défilement, tout en gardant les animations.
-
-### Bibliothèque JavaScript coûteuse
-
-Le diagnostic PageSpeed attribue 963 ms de CPU à `js/vendor/ui-kit.min.js`, contre 1 288 ms à `js/app.js`.
-
-À la ligne 2 du fichier minifié, le code contient une attente active, de nombreuses allocations et un mécanisme qui relit les styles de tous les éléments après des modifications.
-
-Je propose de conserver les fonctions utiles et de limiter les traitements inutiles, puis de mesurer le résultat.
-
-![Temps CPU des fichiers JavaScript](<audit/js probleme.png>)
-
-### CSS et dépendances
-
-Les imports au début de `styles.css`, `extra.css` et `theme-legacy.css` créent une chaîne de chargement. Coverage montre aussi beaucoup de règles inutilisées pendant la session.
-
-Je propose de simplifier les dépendances et de retirer seulement les règles dont l’inutilité a été vérifiée sur les pages et les formats d’écran concernés.
-
-Le gain réseau devra être mesuré sur le site publié, où les fichiers texte sont compressés.
-
-### Piste conditionnelle à tester
-
-Le code de `js/analytics.js` contient un calcul périodique qui s’active après un délai, seulement si la page est visible et plus large que 1 024 pixels. Sa durée augmente avec les passages.
-
-Cette piste reste à confirmer avec un enregistrement long, puis une comparaison entre fenêtre large et étroite. Aucun gain n’a encore été mesuré pour ce point.
-
-## 3. Corrections et résultats avant/après
-
-Les corrections n’ont pas encore été réalisées.
-
-Le tableau rassemble les six indicateurs demandés. Les temps viennent de PageSpeed Insights. Le poids et les requêtes viennent d’un relevé Réseau séparé, commun aux deux profils de départ.
-
-### Suppression du préchargement supplémentaire
-
-J’ai retiré de `index.html` le préchargement de `img6.jpg?v=2`. L’image reste présente dans la galerie avec l’adresse `img6.jpg`.
-
-Après publication, le poids transféré passe de 17,5 à 14,2 MB, soit environ 3,3 MB économisés (19 %). Le nombre de requêtes passe de 22 à 21.
-
-![Réseau après suppression du préchargement](audit/Reseau-apres-prel.png)
-
-### Suppression de la référence au script absent
-
-J’ai retiré la référence à `js/legacy/polyfills.js`, qui renvoyait une erreur 404. Le nombre de requêtes passe de 21 à 20. Le poids transféré reste à 14,2 MB à l’arrondi affiché.
-
-
-![Comparaison avant et après optimisation](audit/tableau-avant-apres.png)
-
-Après chaque optimisation, je noterai :
-
-- Le problème et sa preuve.
-- La correction appliquée.
-- Le commit correspondant.
-- Les mesures après correction.
-- Le gain mesuré.
-
-Les mesures seront refaites sur le site publié dans les mêmes conditions. Je comparerai aussi l’apparence et testerai la galerie, le filtre, les suggestions, les animations et le calendrier.
-
-Les colonnes « Après » seront complétées avec ces résultats.
-
-## 4. Bilan provisoire
-
-Les principaux problèmes concernent le poids des images et le travail JavaScript.
-
-Je commencerai par les ressources lourdes, puis les traitements JavaScript et le CSS. Les captures avant et après permettront de vérifier les gains et de confirmer que le rendu du site reste identique.
+Le site étant hébergé sur GitHub Pages, certains réglages serveur ne sont pas directement accessibles. D’après le guide, gzip y est déjà appliqué aux fichiers texte. Sur un serveur configurable, je vérifierais gzip ou Brotli, un cache long pour les ressources versionnées et une revalidation courte pour le HTML. Un outil de build pourrait ajouter une empreinte aux noms des fichiers pour renouveler le cache à chaque version. Je vérifierais aussi HTTP/2 ou HTTP/3 et l’utilisation d’un CDN. Ces pistes ne sont pas présentées comme des corrections réalisées ni comme des gains mesurés dans ce TP.
