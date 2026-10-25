@@ -168,6 +168,10 @@ Après publication, le poids transféré passe de 17,5 à 14,2 MB, soit environ 
 
 ![Réseau après suppression du préchargement](audit/Reseau-apres-prel.png)
 
+### Suppression de la référence au script absent
+
+J’ai retiré la référence à `js/legacy/polyfills.js`, qui renvoyait une erreur 404. Le nombre de requêtes passe de 21 à 20. Le poids transféré reste à 14,2 MB à l’arrondi affiché.
+
 
 ![Comparaison avant et après optimisation](audit/tableau-avant-apres.png)
 
